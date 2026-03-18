@@ -266,3 +266,65 @@ body > * {
 }
 
 #xpBar { box-shadow: 0 0 10px rgba(255, 173, 70, 0.5); }
+
+.reader-nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 64px;
+    height: 64px;
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 1.85rem;
+    font-weight: 900;
+    box-shadow: 0 16px 26px rgba(15, 23, 42, 0.3);
+    z-index: 20;
+}
+
+.reader-nav-left {
+    left: 12px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.reader-nav-right {
+    right: 12px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.mascot-peek {
+    position: absolute;
+    top: -24px;
+    left: 24px;
+    z-index: 10;
+}
+
+body.reader-open {
+    background: #f3f4f6;
+}
+
+body.reader-open::before {
+    opacity: 0;
+}
+
+body.reader-open > nav,
+body.reader-open > section,
+body.reader-open > #rewardBadge {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .reader-nav-arrow {
+        width: 56px;
+        height: 56px;
+        font-size: 1.65rem;
+    }
+
+    .reader-nav-left {
+        left: 8px;
+    }
+
+    .reader-nav-right {
+        right: 8px;
+    }
+}

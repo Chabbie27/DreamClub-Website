@@ -1,7 +1,15 @@
 // --- DATA ---
 const myBooks = [
 
-    { title: "Nhlanhla's Dream", description: "A cosmic cheese party!", cover: "Cover.png", link: "https://drive.google.com/file/d/1lJXISAkZ3JAVdJY5_W56gsDpIP7n3drv/view?usp=drive_link", color: "border-cyan-400" }
+    {
+        title: "Nhlanhla's Dream",
+        description: "A cosmic cheese party!",
+        cover: "Cover.png",
+        link: "https://drive.google.com/file/d/1lJXISAkZ3JAVdJY5_W56gsDpIP7n3drv/view?usp=drive_link",
+        color: "border-cyan-400",
+        pages: 24,
+        physicalLink: "https://www.amazon.com/s?k=Nhlanhla%27s+Dream+book"
+    }
 ];
 
 // --- INITIAL STATE ---
@@ -42,6 +50,10 @@ let gameScores = {
     finder: 0
 };
 let activeGamePanelId = 'cookOffCard';
+let readerCurrentPage = 1;
+let readerTotalPages = 1;
+let activeReaderUrl = '';
+let readerTouchStartX = 0;
 
 // --- FUNCTIONS ---
 
@@ -198,7 +210,38 @@ function updateXPDisplay() {
     renderMembers();
 }
 
-function openReader(url, title) {
+function updateReaderPageCounter() {
+    const pageCounter = document.getElementById('readerPageCounter');
+    if (pageCounter) {
+        pageCounter.textContent = `Page ${readerCurrentPage} of ${readerTotalPages}`;
+    }
+}
+
+function getReaderUrlForPage(baseUrl, pageNumber) {
+    const cleanedUrl = String(baseUrl || '').replace(/#page=\d+$/, '');
+    return `${cleanedUrl}#page=${pageNumber}`;
+}
+
+function setReaderPage(pageNumber) {
+    const normalizedPage = Math.min(readerTotalPages, Math.max(1, pageNumber));
+    readerCurrentPage = normalizedPage;
+    updateReaderPageCounter();
+
+    const readerFrame = document.getElementById('readerIframe');
+    if (readerFrame && activeReaderUrl) {
+        readerFrame.src = getReaderUrlForPage(activeReaderUrl, readerCurrentPage);
+    }
+}
+
+function prevReaderPage() {
+    setReaderPage(readerCurrentPage - 1);
+}
+
+function nextReaderPage() {
+    setReaderPage(readerCurrentPage + 1);
+}
+
+function openReader(url, title, totalPages = 1, physicalBookLink = '') {
     popSound.play();
     let secureUrl = url;
 
@@ -210,9 +253,19 @@ function openReader(url, title) {
         secureUrl = url.replace('/view', '/preview');
     }
 
-    document.getElementById('readerIframe').src = secureUrl;
+    activeReaderUrl = secureUrl;
+    readerCurrentPage = 1;
+    readerTotalPages = Math.max(1, Number(totalPages) || 1);
+    updateReaderPageCounter();
+
+    document.getElementById('readerIframe').src = getReaderUrlForPage(activeReaderUrl, readerCurrentPage);
     document.getElementById('readerTitle').innerText = title;
+    const buyButton = document.getElementById('buyBookButton');
+    if (buyButton) {
+        buyButton.href = physicalBookLink || url;
+    }
     document.getElementById('readerModal').classList.remove('hidden');
+    document.body.classList.add('reader-open');
     document.body.style.overflow = 'hidden';
 
     // Start 10s Timer for Reward
@@ -228,6 +281,7 @@ function openReader(url, title) {
 function closeReader() {
     document.getElementById('readerModal').classList.add('hidden');
     document.getElementById('readerIframe').src = "";
+    document.body.classList.remove('reader-open');
     document.body.style.overflow = 'auto';
 }
 
@@ -238,16 +292,75 @@ function toggleReaderMode() {
     }
 }
 
+function openReaderByIndex(bookIndex) {
+    const book = myBooks[bookIndex];
+    if (!book) return;
+    openReader(book.link, book.title, book.pages, book.physicalLink);
+}
+
+function isReaderOpen() {
+    const readerModal = document.getElementById('readerModal');
+    return !!readerModal && !readerModal.classList.contains('hidden');
+}
+
+function handleReaderKeyNavigation(event) {
+    if (!isReaderOpen()) return;
+
+    if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        prevReaderPage();
+        return;
+    }
+
+    if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        nextReaderPage();
+        return;
+    }
+
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeReader();
+    }
+}
+
+function initReaderSwipeNavigation() {
+    const readerBody = document.getElementById('readerBody');
+    if (!readerBody) return;
+
+    readerBody.addEventListener('touchstart', (event) => {
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+        readerTouchStartX = touch.clientX;
+    }, { passive: true });
+
+    readerBody.addEventListener('touchend', (event) => {
+        if (!isReaderOpen()) return;
+
+        const touch = event.changedTouches[0];
+        if (!touch) return;
+
+        const deltaX = touch.clientX - readerTouchStartX;
+        const swipeThreshold = 45;
+
+        if (deltaX <= -swipeThreshold) {
+            nextReaderPage();
+        } else if (deltaX >= swipeThreshold) {
+            prevReaderPage();
+        }
+    }, { passive: true });
+}
+
 function displayBooks() {
     const shelf = document.getElementById('myBookshelf');
     if (!shelf) return;
 
-    shelf.innerHTML = myBooks.map(book => `
+    shelf.innerHTML = myBooks.map((book, index) => `
         <div class="bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl overflow-hidden border-[10px] ${book.color} animate__animated animate__zoomIn">
             <img src="${book.cover}" class="h-48 w-full object-cover">
             <div class="p-6 text-center">
                 <h3 class="font-black text-xl mb-2">${book.title}</h3>
-                <button onclick="openReader('${book.link}', '${escapeSingleQuotes(book.title)}')" class="bg-purple-600 text-white font-black px-8 py-2 rounded-full shadow-lg">Read Now</button>
+                <button onclick="openReaderByIndex(${index})" class="bg-purple-600 text-white font-black px-8 py-2 rounded-full shadow-lg">Read Now</button>
             </div>
         </div>
     `).join('');
@@ -645,6 +758,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (themeToggle) {
         themeToggle.onclick = toggleTheme;
     }
+
+    document.addEventListener('keydown', handleReaderKeyNavigation);
+    initReaderSwipeNavigation();
 
     initApp();
 });
