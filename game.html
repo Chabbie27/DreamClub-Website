@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dream Club - Nhlanhla's Word Search</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="word-search-page">
+    <main class="game-shell">
+        <a class="game-home-link" href="index.html">Back to Dream Club</a>
+
+        <nav class="game-tabs" aria-label="Select a game">
+            <button class="game-tab is-active" type="button" data-target="wordHuntSection">Word Hunt</button>
+            <button class="game-tab" type="button" data-target="dreamMatcherSection">Dream Matcher</button>
+            <button class="game-tab" type="button" data-target="recycleBuildSection">Recycle &amp; Build</button>
+            <button class="game-tab" type="button" data-target="whoAmISection">Who Am I?</button>
+        </nav>
+
+        <section id="wordHuntSection" class="game-container game-panel-section">
+            <div class="game-topbar">
+                <div>
+                    <p class="game-kicker">Dream Club Game Page</p>
+                    <h1>Nhlanhla's Tool Hunt</h1>
+                    <p class="game-intro">Find the hidden words from the story before time runs out. Each word boosts your score.</p>
+                </div>
+                <div class="game-mascot-card" aria-hidden="true">
+                    <div class="game-mascot-badge">Tool Hunt Hero</div>
+                </div>
+            </div>
+
+            <div class="game-hud" aria-label="Game stats">
+                <div class="game-stat">
+                    <span class="game-stat-label">Score</span>
+                    <strong id="scoreValue" class="game-stat-value">0</strong>
+                </div>
+                <div class="game-stat">
+                    <span class="game-stat-label">Words Found</span>
+                    <strong id="wordsFoundValue" class="game-stat-value">0 / 5</strong>
+                </div>
+                <div class="game-stat game-stat-timer">
+                    <span class="game-stat-label">Time Left</span>
+                    <strong id="timerValue" class="game-stat-value">90s</strong>
+                </div>
+                <div class="game-stat">
+                    <span class="game-stat-label">Stage</span>
+                    <strong id="stageValue" class="game-stat-value">1 / 3</strong>
+                </div>
+            </div>
+
+            <div class="game-layout">
+                <div>
+                    <div id="word-search-grid" class="grid" aria-label="Word search puzzle"></div>
+                    <p id="gameStatus" class="game-status">Select letters to find all 5 hidden words.</p>
+                </div>
+
+                <aside class="word-list">
+                    <h3>Words to Find:</h3>
+                    <ul id="list"></ul>
+                    <button id="resetPuzzle" class="game-action" type="button">Reset Puzzle</button>
+                </aside>
+            </div>
+        </section>
+
+        <section id="dreamMatcherSection" class="game-container game-panel-section match-game-section hidden">
+            <div class="match-game">
+                <div class="game-topbar">
+                    <div>
+                        <p class="game-kicker">Dream Club Game Page</p>
+                        <h2 class="match-title">Dream Matcher</h2>
+                        <p class="game-intro">Drag each character to the dream that matches them. You can also tap a character, then tap a dream card on mobile.</p>
+                    </div>
+                    <div class="game-mascot-card" aria-hidden="true">
+                        <div class="game-mascot-badge">Dream Match Hero</div>
+                    </div>
+                </div>
+
+                <h3 class="match-subtitle">Match the Character to Their Dream!</h3>
+
+                <div class="match-hud" aria-label="Dream matcher stats">
+                    <div class="game-stat">
+                        <span class="game-stat-label">Matcher Stage</span>
+                        <strong id="matcherStageValue" class="game-stat-value">1 / 3</strong>
+                    </div>
+                </div>
+
+                <div id="matcherDragContainer" class="drag-container" aria-label="Draggable characters"></div>
+
+                <div id="matcherDropContainer" class="drop-container" aria-label="Dream targets"></div>
+
+                <p id="matcherStatus" class="match-status">Make both matches to clear Dream Matcher.</p>
+                <button id="nextMatcherStage" class="game-action match-next hidden" type="button">Next Matcher Stage →</button>
+                <button id="resetMatcher" class="game-action match-reset" type="button">Reset Dream Matcher</button>
+            </div>
+        </section>
+
+        <section id="recycleBuildSection" class="game-container game-panel-section recycle-game-section hidden">
+            <div class="recycle-game">
+                <div class="game-topbar">
+                    <div>
+                        <p class="game-kicker">Dream Club Game Page</p>
+                        <h2 class="recycle-title">Recycle &amp; Build Challenge</h2>
+                        <p id="recyclePrompt" class="game-intro">Nhlanhla built her cart using recycled items. Click the 4 items she used, then check your cart.</p>
+                    </div>
+                    <div class="game-mascot-card" aria-hidden="true">
+                        <div class="game-mascot-badge">Builder Hero</div>
+                    </div>
+                </div>
+
+                <div class="recycle-hud" aria-label="Recycle build stats">
+                    <div class="game-stat">
+                        <span class="game-stat-label">Recycle Stage</span>
+                        <strong id="recycleStageValue" class="game-stat-value">1 / 3</strong>
+                    </div>
+                </div>
+
+                <div class="materials-grid" id="materialsGrid" aria-label="Build materials">
+                </div>
+
+                <div class="recycle-actions">
+                    <button id="nextRecycleStage" class="game-action recycle-next hidden" type="button">Next Recycle Stage →</button>
+                    <button id="checkBuild" class="game-action" type="button">Check My Cart!</button>
+                    <button id="resetBuild" class="game-action game-action-secondary" type="button">Reset Materials</button>
+                </div>
+
+                <p id="buildFeedback" class="build-feedback">Pick 4 items and press "Check My Cart!"</p>
+            </div>
+        </section>
+
+        <section id="whoAmISection" class="game-container game-panel-section whoami-game-section hidden">
+            <div class="whoami-game">
+                <div class="game-topbar">
+                    <div>
+                        <p class="game-kicker">Dream Club Game Page</p>
+                        <h2 class="whoami-title">Matching Game: Who Am I?</h2>
+                        <p id="whoamiPrompt" class="game-intro">Drag each name to the correct dream card. On mobile: tap a name, then tap a dream card.</p>
+                    </div>
+                    <div class="game-mascot-card" aria-hidden="true">
+                        <div class="game-mascot-badge">Identity Hero</div>
+                    </div>
+                </div>
+
+                <div class="whoami-hud" aria-label="Who am I stats">
+                    <div class="game-stat">
+                        <span class="game-stat-label">Who Am I Stage</span>
+                        <strong id="whoamiStageValue" class="game-stat-value">1 / 3</strong>
+                    </div>
+                </div>
+
+                <div class="matching-container">
+                    <div id="whoamiNames" class="names-column" aria-label="Draggable names"></div>
+                    <div id="whoamiDreams" class="dreams-column" aria-label="Dream drop targets"></div>
+                </div>
+
+                <p id="whoamiStatus" class="whoami-status">Match every name to the right dream.</p>
+
+                <div class="whoami-actions">
+                    <button id="nextWhoAmIStage" class="game-action whoami-next hidden" type="button">Next Who Am I Stage →</button>
+                    <button id="resetWhoAmI" class="game-action game-action-secondary" type="button">Reset Who Am I</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="winPopup" class="game-popup hidden" role="dialog" aria-modal="true" aria-labelledby="winPopupTitle">
+        <div class="game-popup-card">
+            <p id="winPopupKicker" class="game-popup-kicker">Stage Complete!</p>
+            <h2 id="winPopupTitle">Great job — keep going!</h2>
+            <p id="winPopupSummary" class="game-popup-summary">Stage score: 0</p>
+            <div class="game-popup-actions">
+                <button id="nextStageBtn" class="game-action" type="button">Next Stage →</button>
+                <button id="playAgainBtn" class="game-action game-action-secondary" type="button">Restart from Stage 1</button>
+                <a class="game-home-link game-popup-link" href="index.html">Back to Dream Club</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -5,7 +5,7 @@ const myBooks = [
         title: "Nhlanhla's Dream",
         description: "A cosmic cheese party!",
         cover: "Cover.png",
-        link: "https://drive.google.com/file/d/1lJXISAkZ3JAVdJY5_W56gsDpIP7n3drv/view?usp=drive_link",
+        link: "https://drive.google.com/file/d/1fKH2YQv4xL1cIPigUwF_4OT06xbG0Zf3/view?usp=drive_link",
         color: "border-cyan-400",
         pages: 24,
         physicalLink: "https://www.amazon.com/s?k=Nhlanhla%27s+Dream+book"
@@ -49,11 +49,357 @@ let gameScores = {
     bridge: 0,
     finder: 0
 };
-let activeGamePanelId = 'cookOffCard';
+let activeGamePanelId = 'embedCard1';
 let readerCurrentPage = 1;
 let readerTotalPages = 1;
 let activeReaderUrl = '';
 let readerTouchStartX = 0;
+let authInstance = null;
+let authReady = false;
+let authUser = null;
+
+const GAME_SOURCE_PRESETS = {
+    educandy: 'https://www.educandy.com/',
+    h5p: 'https://h5p.org/',
+    'open-source': 'https://phaser.io/examples/v3',
+    custom: ''
+};
+
+const STARTER_GAME_URLS = [
+    {
+        title: 'Educandy Home',
+        source: 'educandy',
+        url: 'https://www.educandy.com/',
+        notes: 'Hosted educational platform. Use shared activity links and follow Educandy terms.'
+    },
+    {
+        title: 'Educandy Games Library',
+        source: 'educandy',
+        url: 'https://www.educandy.com/site/games',
+        notes: 'Good discovery page for kid-friendly vocabulary games. Confirm each game is share-enabled.'
+    },
+    {
+        title: 'H5P Content Types',
+        source: 'h5p',
+        url: 'https://h5p.org/content-types-and-applications',
+        notes: 'H5P is open source (GPL). Great for quizzes and drag-drop experiences.'
+    },
+    {
+        title: 'H5P Memory Game',
+        source: 'h5p',
+        url: 'https://h5p.org/memory-game',
+        notes: 'H5P demo page for memory format. Use self-hosted or hosted H5P embeds in production.'
+    },
+    {
+        title: 'H5P Drag and Drop',
+        source: 'h5p',
+        url: 'https://h5p.org/drag-and-drop',
+        notes: 'Interactive activity style for matching tasks. Keep attribution as required.'
+    },
+    {
+        title: 'Phaser Examples v3',
+        source: 'open-source',
+        url: 'https://phaser.io/examples/v3',
+        notes: 'Open-source HTML5 game framework examples. Check individual example licensing before reuse.'
+    },
+    {
+        title: 'GDevelop Example Games',
+        source: 'open-source',
+        url: 'https://gdevelop.io/game-example',
+        notes: 'Many examples are open projects. Verify game-specific assets and licenses.'
+    },
+    {
+        title: 'OpenGameArt',
+        source: 'open-source',
+        url: 'https://opengameart.org/',
+        notes: 'Asset source for open projects. Respect each asset license (CC0, CC-BY, GPL, etc.).'
+    },
+    {
+        title: 'Godot Demo Projects',
+        source: 'open-source',
+        url: 'https://github.com/godotengine/godot-demo-projects',
+        notes: 'Open-source demo repository. Build and host exported games yourself for embedding.'
+    },
+    {
+        title: 'Phaser GitHub Repo',
+        source: 'open-source',
+        url: 'https://github.com/phaserjs/phaser',
+        notes: 'Framework source repo (MIT). Use examples and docs to create your own hosted games.'
+    }
+];
+
+// --- FIREBASE AUTH ---
+
+function getFirebaseConfig() {
+    const config = window.DREAM_FIREBASE_CONFIG;
+    if (!config || typeof config !== 'object') return null;
+
+    const required = ['apiKey', 'authDomain', 'projectId', 'appId'];
+    const hasAllRequired = required.every(key => typeof config[key] === 'string' && config[key].trim() !== '');
+    return hasAllRequired ? config : null;
+}
+
+function setAuthStatus(message, isError = false) {
+    const status = document.getElementById('authStatus');
+    if (!status) return;
+
+    status.textContent = message;
+    status.classList.toggle('text-red-700', isError);
+    status.classList.toggle('dark:text-red-200', isError);
+    status.classList.toggle('bg-red-50', isError);
+    status.classList.toggle('dark:bg-red-950', isError);
+    status.classList.toggle('text-teal-700', !isError);
+    status.classList.toggle('dark:text-teal-200', !isError);
+    status.classList.toggle('bg-teal-50', !isError);
+    status.classList.toggle('dark:bg-teal-950', !isError);
+}
+
+function openAuthModal() {
+    const modal = document.getElementById('authModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setAuthStatus('Sign in to save your Dream Club progress.');
+}
+
+function closeAuthModal() {
+    const modal = document.getElementById('authModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+function setAuthControlsDisabled(disabled) {
+    const signInBtn = document.getElementById('authSignInBtn');
+    const signUpBtn = document.getElementById('authSignUpBtn');
+    const googleBtn = document.getElementById('authGoogleBtn');
+    const emailInput = document.getElementById('authEmail');
+    const passwordInput = document.getElementById('authPassword');
+
+    if (signInBtn) signInBtn.disabled = disabled;
+    if (signUpBtn) signUpBtn.disabled = disabled;
+    if (googleBtn) googleBtn.disabled = disabled;
+    if (emailInput) emailInput.disabled = disabled;
+    if (passwordInput) passwordInput.disabled = disabled;
+}
+
+function getAuthFormValues() {
+    const emailInput = document.getElementById('authEmail');
+    const passwordInput = document.getElementById('authPassword');
+
+    return {
+        email: emailInput ? emailInput.value.trim() : '',
+        password: passwordInput ? passwordInput.value : ''
+    };
+}
+
+function getAuthDisplayName(user) {
+    if (!user) return 'Guest';
+    if (user.displayName && user.displayName.trim()) return user.displayName.trim();
+    if (user.email && user.email.trim()) return user.email.trim();
+    return 'Member';
+}
+
+function syncActiveMemberFromAuth(user) {
+    if (!user) {
+        activeMemberName = null;
+        localStorage.removeItem('activeMemberName');
+        return;
+    }
+
+    const displayName = getAuthDisplayName(user);
+    const existingMember = clubMembers.find(member => member.name.toLowerCase() === displayName.toLowerCase());
+
+    if (existingMember) {
+        activeMemberName = existingMember.name;
+        userXP = existingMember.xp;
+    } else {
+        clubMembers.push({ name: displayName, xp: 0 });
+        activeMemberName = displayName;
+        userXP = 0;
+        saveMembers();
+    }
+
+    localStorage.setItem('activeMemberName', activeMemberName);
+}
+
+function updateAuthUI() {
+    const userLabel = document.getElementById('authUserLabel');
+    const loginBtn = document.getElementById('authLoginBtn');
+    const logoutBtn = document.getElementById('authLogoutBtn');
+
+    if (!userLabel || !loginBtn || !logoutBtn) return;
+
+    if (authUser) {
+        userLabel.textContent = getAuthDisplayName(authUser);
+        userLabel.classList.remove('hidden');
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+        localStorage.setItem('isLoggedIn', 'true');
+    } else {
+        userLabel.textContent = 'Guest';
+        userLabel.classList.add('hidden');
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+        localStorage.setItem('isLoggedIn', 'false');
+    }
+}
+
+async function signInWithEmail() {
+    if (!authReady || !authInstance) {
+        setAuthStatus('Firebase is not configured yet. Add keys in firebase-config.js.', true);
+        return;
+    }
+
+    const { email, password } = getAuthFormValues();
+    if (!email || !password) {
+        setAuthStatus('Enter both email and password.', true);
+        return;
+    }
+
+    try {
+        setAuthControlsDisabled(true);
+        setAuthStatus('Signing in...');
+        await authInstance.signInWithEmailAndPassword(email, password);
+        setAuthStatus('Welcome back!');
+        closeAuthModal();
+    } catch (error) {
+        setAuthStatus(error.message || 'Unable to sign in right now.', true);
+    } finally {
+        setAuthControlsDisabled(false);
+    }
+}
+
+async function signUpWithEmail() {
+    if (!authReady || !authInstance) {
+        setAuthStatus('Firebase is not configured yet. Add keys in firebase-config.js.', true);
+        return;
+    }
+
+    const { email, password } = getAuthFormValues();
+    if (!email || !password) {
+        setAuthStatus('Enter both email and password.', true);
+        return;
+    }
+
+    if (password.length < 6) {
+        setAuthStatus('Password must be at least 6 characters long.', true);
+        return;
+    }
+
+    try {
+        setAuthControlsDisabled(true);
+        setAuthStatus('Creating account...');
+        await authInstance.createUserWithEmailAndPassword(email, password);
+        setAuthStatus('Account created. You are now logged in.');
+        closeAuthModal();
+    } catch (error) {
+        setAuthStatus(error.message || 'Unable to create account right now.', true);
+    } finally {
+        setAuthControlsDisabled(false);
+    }
+}
+
+async function signOutAuth() {
+    if (!authReady || !authInstance) {
+        authUser = null;
+        syncActiveMemberFromAuth(null);
+        updateAuthUI();
+        updateXPDisplay();
+        return;
+    }
+
+    try {
+        await authInstance.signOut();
+    } catch (_) {
+        // Keep UI responsive even if sign-out network call fails.
+        authUser = null;
+        syncActiveMemberFromAuth(null);
+        updateAuthUI();
+        updateXPDisplay();
+    }
+}
+
+async function signInWithGoogle() {
+    if (!authReady || !authInstance || !window.firebase || !window.firebase.auth) {
+        setAuthStatus('Firebase is not configured yet. Add keys in firebase-config.js.', true);
+        return;
+    }
+
+    try {
+        setAuthControlsDisabled(true);
+        setAuthStatus('Opening Google sign-in...');
+        const provider = new window.firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await authInstance.signInWithPopup(provider);
+        setAuthStatus('Signed in with Google.');
+        closeAuthModal();
+    } catch (error) {
+        setAuthStatus(error.message || 'Unable to sign in with Google right now.', true);
+    } finally {
+        setAuthControlsDisabled(false);
+    }
+}
+
+function wireAuthButtons() {
+    const loginBtn = document.getElementById('authLoginBtn');
+    const logoutBtn = document.getElementById('authLogoutBtn');
+    const closeModalBtn = document.getElementById('closeAuthModalBtn');
+    const signInBtn = document.getElementById('authSignInBtn');
+    const signUpBtn = document.getElementById('authSignUpBtn');
+    const googleBtn = document.getElementById('authGoogleBtn');
+    const modal = document.getElementById('authModal');
+
+    if (loginBtn) loginBtn.onclick = openAuthModal;
+    if (logoutBtn) logoutBtn.onclick = signOutAuth;
+    if (closeModalBtn) closeModalBtn.onclick = closeAuthModal;
+    if (signInBtn) signInBtn.onclick = signInWithEmail;
+    if (signUpBtn) signUpBtn.onclick = signUpWithEmail;
+    if (googleBtn) googleBtn.onclick = signInWithGoogle;
+
+    if (modal) {
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeAuthModal();
+        });
+    }
+}
+
+function initFirebaseAuth() {
+    wireAuthButtons();
+
+    if (!window.firebase || typeof window.firebase.initializeApp !== 'function') {
+        setAuthStatus('Firebase SDK not loaded. Check your script tags.', true);
+        updateAuthUI();
+        return;
+    }
+
+    const config = getFirebaseConfig();
+    if (!config) {
+        setAuthStatus('Add your Firebase web config in firebase-config.js to enable login.');
+        updateAuthUI();
+        return;
+    }
+
+    try {
+        if (window.firebase.apps && window.firebase.apps.length === 0) {
+            window.firebase.initializeApp(config);
+        }
+
+        authInstance = window.firebase.auth();
+        authReady = true;
+
+        authInstance.onAuthStateChanged((user) => {
+            authUser = user || null;
+            syncActiveMemberFromAuth(authUser);
+            updateAuthUI();
+            updateXPDisplay();
+        });
+    } catch (error) {
+        authReady = false;
+        setAuthStatus(error.message || 'Failed to initialize Firebase auth.', true);
+        updateAuthUI();
+    }
+}
 
 // --- FUNCTIONS ---
 
@@ -157,6 +503,156 @@ function initGameLauncher() {
     showGamePanel(activeGamePanelId);
 }
 
+function getActiveSlotNumber() {
+    const match = String(activeGamePanelId || '').match(/embedCard(\d+)/);
+    return match ? Number(match[1]) : 1;
+}
+
+function getSlotElements(slotNumber) {
+    const sourceSelect = document.getElementById(`slot${slotNumber}Source`);
+    const urlInput = document.getElementById(`slot${slotNumber}Url`);
+    const loadButton = document.getElementById(`slot${slotNumber}Load`);
+    const frame = document.getElementById(`slot${slotNumber}Frame`);
+    const openLink = document.getElementById(`slot${slotNumber}Open`);
+    const status = document.getElementById(`slot${slotNumber}Status`);
+
+    if (!sourceSelect || !urlInput || !loadButton || !frame || !openLink || !status) {
+        return null;
+    }
+
+    return { sourceSelect, urlInput, loadButton, frame, openLink, status };
+}
+
+function setSlotStatus(slotNumber, message) {
+    const elements = getSlotElements(slotNumber);
+    if (!elements) return;
+    elements.status.textContent = message;
+}
+
+function setSlotPreset(slotNumber, source) {
+    const elements = getSlotElements(slotNumber);
+    if (!elements) return;
+
+    const presetUrl = GAME_SOURCE_PRESETS[source] || '';
+    elements.sourceSelect.value = source;
+
+    if (presetUrl) {
+        elements.urlInput.value = presetUrl;
+        elements.openLink.href = presetUrl;
+        setSlotStatus(slotNumber, `${source.toUpperCase()} preset loaded. Press Load to preview.`);
+    } else {
+        elements.urlInput.value = '';
+        elements.openLink.href = '#';
+        setSlotStatus(slotNumber, 'Paste a custom URL and press Load.');
+    }
+}
+
+function loadSlotEmbed(slotNumber) {
+    const elements = getSlotElements(slotNumber);
+    if (!elements) return;
+
+    const url = elements.urlInput.value.trim();
+    if (!url) {
+        setSlotStatus(slotNumber, 'Please paste a valid game URL first.');
+        return;
+    }
+
+    elements.frame.src = url;
+    elements.openLink.href = url;
+    setSlotStatus(slotNumber, 'Game loaded. If blocked, use the Open link in a new tab.');
+}
+
+function applyGlobalGameSource() {
+    const globalSelect = document.getElementById('globalGameSource');
+    if (!globalSelect) return;
+
+    const source = globalSelect.value;
+    [1, 2, 3].forEach(slotNumber => {
+        setSlotPreset(slotNumber, source);
+    });
+}
+
+function useStarterGameUrl(url, source) {
+    const slotNumber = getActiveSlotNumber();
+    const elements = getSlotElements(slotNumber);
+    if (!elements) return;
+
+    elements.sourceSelect.value = source;
+    elements.urlInput.value = url;
+    loadSlotEmbed(slotNumber);
+}
+
+function renderStarterGameList() {
+    const host = document.getElementById('starterGameList');
+    if (!host) return;
+
+    host.innerHTML = '';
+    STARTER_GAME_URLS.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'starter-game-item';
+
+        const textWrap = document.createElement('div');
+        textWrap.className = 'starter-game-copy';
+
+        const title = document.createElement('p');
+        title.className = 'starter-game-title';
+        title.textContent = `${item.title} (${item.source})`;
+
+        const url = document.createElement('p');
+        url.className = 'starter-game-url';
+        url.textContent = item.url;
+
+        const note = document.createElement('p');
+        note.className = 'starter-game-note';
+        note.textContent = item.notes;
+
+        const useButton = document.createElement('button');
+        useButton.type = 'button';
+        useButton.className = 'starter-game-use';
+        useButton.textContent = 'Use';
+        useButton.onclick = () => useStarterGameUrl(item.url, item.source);
+
+        textWrap.appendChild(title);
+        textWrap.appendChild(url);
+        textWrap.appendChild(note);
+        row.appendChild(textWrap);
+        row.appendChild(useButton);
+        host.appendChild(row);
+    });
+}
+
+function initGameEmbeds() {
+    const applyAll = document.getElementById('applySourceToAllBtn');
+    if (applyAll) {
+        applyAll.onclick = applyGlobalGameSource;
+    }
+
+    [1, 2, 3].forEach(slotNumber => {
+        const elements = getSlotElements(slotNumber);
+        if (!elements) return;
+
+        elements.sourceSelect.onchange = () => {
+            setSlotPreset(slotNumber, elements.sourceSelect.value);
+        };
+
+        elements.loadButton.onclick = () => {
+            loadSlotEmbed(slotNumber);
+        };
+
+        elements.urlInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                loadSlotEmbed(slotNumber);
+            }
+        });
+    });
+
+    setSlotPreset(1, 'educandy');
+    setSlotPreset(2, 'h5p');
+    setSlotPreset(3, 'open-source');
+    renderStarterGameList();
+}
+
 function applyTheme(theme) {
     const root = document.documentElement;
     const themeToggle = document.getElementById('themeToggle');
@@ -217,6 +713,37 @@ function updateReaderPageCounter() {
     }
 }
 
+function updateReaderControls() {
+    const prevButton = document.getElementById('readerPrevBtn');
+    const nextButton = document.getElementById('readerNextBtn');
+    const jumpInput = document.getElementById('readerPageInput');
+    const jumpButton = document.getElementById('readerJumpBtn');
+
+    const atFirstPage = readerCurrentPage <= 1;
+    const atLastPage = readerCurrentPage >= readerTotalPages;
+
+    if (prevButton) {
+        prevButton.disabled = atFirstPage;
+        prevButton.setAttribute('aria-disabled', String(atFirstPage));
+    }
+
+    if (nextButton) {
+        nextButton.disabled = atLastPage;
+        nextButton.setAttribute('aria-disabled', String(atLastPage));
+    }
+
+    if (jumpInput) {
+        jumpInput.max = String(readerTotalPages);
+        jumpInput.value = String(readerCurrentPage);
+    }
+
+    if (jumpButton) {
+        const shouldDisableJump = readerTotalPages <= 1;
+        jumpButton.disabled = shouldDisableJump;
+        jumpButton.setAttribute('aria-disabled', String(shouldDisableJump));
+    }
+}
+
 function getReaderUrlForPage(baseUrl, pageNumber) {
     const cleanedUrl = String(baseUrl || '').replace(/#page=\d+$/, '');
     return `${cleanedUrl}#page=${pageNumber}`;
@@ -226,11 +753,22 @@ function setReaderPage(pageNumber) {
     const normalizedPage = Math.min(readerTotalPages, Math.max(1, pageNumber));
     readerCurrentPage = normalizedPage;
     updateReaderPageCounter();
+    updateReaderControls();
 
     const readerFrame = document.getElementById('readerIframe');
     if (readerFrame && activeReaderUrl) {
         readerFrame.src = getReaderUrlForPage(activeReaderUrl, readerCurrentPage);
     }
+}
+
+function jumpReaderPage() {
+    const jumpInput = document.getElementById('readerPageInput');
+    if (!jumpInput) return;
+
+    const requestedPage = Number(jumpInput.value);
+    if (!Number.isFinite(requestedPage)) return;
+
+    setReaderPage(Math.round(requestedPage));
 }
 
 function prevReaderPage() {
@@ -249,7 +787,7 @@ function openReader(url, title, totalPages = 1, physicalBookLink = '') {
     const driveMatch = url.match(/\/file\/d\/([^/]+)/);
     if (driveMatch && driveMatch[1]) {
         secureUrl = `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
-    } else {
+    } else if (url.includes('/view')) {
         secureUrl = url.replace('/view', '/preview');
     }
 
@@ -257,6 +795,7 @@ function openReader(url, title, totalPages = 1, physicalBookLink = '') {
     readerCurrentPage = 1;
     readerTotalPages = Math.max(1, Number(totalPages) || 1);
     updateReaderPageCounter();
+    updateReaderControls();
 
     document.getElementById('readerIframe').src = getReaderUrlForPage(activeReaderUrl, readerCurrentPage);
     document.getElementById('readerTitle').innerText = title;
@@ -276,6 +815,18 @@ function openReader(url, title, totalPages = 1, physicalBookLink = '') {
         starSound.play();
         setTimeout(() => document.getElementById('rewardBadge').classList.add('hidden'), 4000);
     }, 10000);
+}
+
+function initReaderPageJump() {
+    const jumpInput = document.getElementById('readerPageInput');
+    if (!jumpInput) return;
+
+    jumpInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            jumpReaderPage();
+        }
+    });
 }
 
 function closeReader() {
@@ -356,11 +907,11 @@ function displayBooks() {
     if (!shelf) return;
 
     shelf.innerHTML = myBooks.map((book, index) => `
-        <div class="bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl overflow-hidden border-[10px] ${book.color} animate__animated animate__zoomIn">
-            <img src="${book.cover}" class="h-48 w-full object-cover">
-            <div class="p-6 text-center">
-                <h3 class="font-black text-xl mb-2">${book.title}</h3>
-                <button onclick="openReaderByIndex(${index})" class="bg-purple-600 text-white font-black px-8 py-2 rounded-full shadow-lg">Read Now</button>
+        <div class="bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl overflow-hidden border-[10px] ${book.color} animate__animated animate__zoomIn max-w-lg w-full">
+            <img src="${book.cover}" class="w-full object-contain">
+            <div class="p-10 text-center">
+                <h3 class="font-black text-3xl mb-4">${book.title}</h3>
+                <button onclick="openReaderByIndex(${index})" class="bg-purple-600 text-white font-black px-12 py-4 rounded-full shadow-lg text-xl">Read Now</button>
             </div>
         </div>
     `).join('');
@@ -736,8 +1287,9 @@ function initApp() {
     }
 
     displayBooks();
-    resetGames();
+    initGameEmbeds();
     initGameLauncher();
+    initFirebaseAuth();
     updateXPDisplay();
     setJoinFieldVisibility(localStorage.getItem('isLoggedIn') !== 'true');
 }
@@ -761,6 +1313,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', handleReaderKeyNavigation);
     initReaderSwipeNavigation();
+    initReaderPageJump();
 
     initApp();
 });

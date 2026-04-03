@@ -15,12 +15,14 @@
 </head>
 <body class="bg-yellow-50 text-gray-800 dark:bg-gray-950 dark:text-gray-100 transition-colors duration-500 font-dream">
 
-    <nav class="bg-white dark:bg-gray-900 shadow-xl sticky top-0 z-50 p-4 rounded-b-[30px]">
+    <nav class="bg-white/35 dark:bg-gray-900/35 backdrop-blur-md shadow-xl sticky top-0 z-50 p-4 rounded-b-[30px] border-b border-white/30 dark:border-white/10">
         <div class="container mx-auto flex justify-between items-center mb-4">
-            <img src="logo.jpeg" alt="The Dream Club" class="h-16 animate__animated animate__bounceIn">
             <div class="space-x-4 flex items-center">
                 <a href="#books" class="font-bold text-blue-500 hover:scale-110 transition">Books</a>
-                <a href="#game" class="font-bold text-emerald-500 hover:scale-110 transition">Game</a>
+                <a href="game.html" class="font-bold text-orange-500 hover:scale-110 transition">Games</a>
+                <span id="authUserLabel" class="hidden text-sm font-black text-teal-600">Guest</span>
+                <button id="authLoginBtn" class="bg-teal-500 text-white font-black px-4 py-2 rounded-full hover:bg-teal-600 transition">Login</button>
+                <button id="authLogoutBtn" class="hidden bg-red-500 text-white font-black px-4 py-2 rounded-full hover:bg-red-600 transition">Logout</button>
                 <button id="themeToggle" class="bg-gray-100 dark:bg-gray-800 p-3 rounded-full text-xl">🌙</button>
             </div>
         </div>
@@ -36,64 +38,7 @@
    
 
     <section id="books" class="container mx-auto py-12 px-6">
-        <h2 class="text-4xl font-black mb-12 text-center text-red-500">Your Bookshelf</h2>
-        <div id="myBookshelf" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"></div>
-    </section>
-
-    <section id="game" class="container mx-auto py-10 px-6">
-        <div class="bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl p-8 border-4 border-emerald-400 overflow-hidden">
-            <h2 class="text-3xl font-black mb-8 text-center text-emerald-600">Dream Arcade Challenge</h2>
-
-            <div class="game-launcher-grid mb-8">
-                <button class="game-launcher active" data-game="cookOffCard" type="button">Letter Cook-Off</button>
-                <button class="game-launcher" data-game="bridgeCard" type="button">Neon Bridge Builder</button>
-                <button class="game-launcher" data-game="finderCard" type="button">Flashlight Finder</button>
-            </div>
-
-            <div id="cookOffCard" class="game-card game-panel mb-8">
-                <h3 class="text-2xl font-black text-orange-500 mb-2">Letter Cook-Off</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-200 mb-4">Build CHERRY in the pot using the correct order.</p>
-                <div id="potSlots" class="pot-slots mb-4"></div>
-                <div id="pantryLetters" class="letter-pantry mb-3"></div>
-                <p id="cookScore" class="text-sm font-black text-orange-500 mb-2">Cook-Off Score: 0</p>
-                <p id="cookStatus" class="text-sm font-bold text-orange-600"></p>
-            </div>
-
-            <div id="bridgeCard" class="game-card game-panel hidden mb-8">
-                <h3 class="text-2xl font-black text-cyan-500 mb-2">Neon Bridge Builder</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-200 mb-2">Choose the chunk that completes BALLOON.</p>
-                <div class="bridge-word-wrap mb-3">
-                    <div id="bridgeWord" class="bridge-word">B _ L L _ _ N</div>
-                </div>
-                <div id="bridgeOptions" class="bridge-options mb-3"></div>
-                    <p id="bridgeScore" class="text-sm font-black text-cyan-500 mb-1">Bridge Score: 0</p>
-                <p id="bridgeTimer" class="text-sm font-bold text-cyan-600 mb-1"></p>
-                <p id="bridgeStatus" class="text-sm font-bold text-cyan-600"></p>
-            </div>
-
-            <div id="finderCard" class="game-card game-panel hidden">
-                <h3 class="text-2xl font-black text-yellow-500 mb-2">Flashlight Finder</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-200 mb-2">Double-tap the correct spelling: FRIEND.</p>
-                <div id="flashlightArea" class="flashlight-area mb-3">
-                    <div id="finderObjects" class="finder-objects"></div>
-                </div>
-                <p id="finderScore" class="text-sm font-black text-yellow-500 mb-1">Finder Score: 0</p>
-                <p id="finderStatus" class="text-sm font-bold text-yellow-600"></p>
-            </div>
-        </div>
-    </section>
-
-    <section id="members" class="container mx-auto py-10 px-6">
-        <div class="bg-white dark:bg-gray-800 rounded-[40px] shadow-2xl p-8 border-4 border-teal-400 overflow-hidden">
-            <h2 class="text-3xl font-black text-center mb-6 text-teal-600">Club Members</h2>
-            <div id="memberJoinField" class="flex gap-2 justify-center mb-8">
-                <input type="text" id="memberNameInput" placeholder="Your nickname..." class="p-3 rounded-xl border-2 border-teal-100 dark:bg-gray-700 dark:text-white outline-none">
-                <button onclick="joinTheClub()" class="bg-teal-500 text-white font-black px-6 py-3 rounded-xl shadow-lg hover:bg-teal-400">Join! 🎨</button>
-            </div>
-            <div class="relative h-16 overflow-hidden bg-teal-50 dark:bg-gray-900 rounded-2xl">
-                <div id="memberScroll" class="flex items-center space-x-8 whitespace-nowrap animate-scroll py-4"></div>
-            </div>
-        </div>
+        <div id="myBookshelf" class="flex justify-center"></div>
     </section>
 
     <div id="readerModal" class="fixed inset-0 z-[100] hidden flex flex-col bg-gray-100/95 animate__animated animate__fadeIn">
@@ -106,19 +51,14 @@
             </div>
         </nav>
         <div id="readerBody" class="relative flex-grow bg-gray-100 p-4 md:p-8">
-            <button id="readerPrevBtn" onclick="prevReaderPage()" class="reader-nav-arrow reader-nav-left" aria-label="Previous page">⬅</button>
-            <button id="readerNextBtn" onclick="nextReaderPage()" class="reader-nav-arrow reader-nav-right" aria-label="Next page">➡</button>
 
             <div class="w-full h-full bg-white rounded-3xl shadow-2xl overflow-hidden relative border-4 border-cyan-200">
                 <div class="mascot-peek" aria-hidden="true">
-                    <img src="logo.png" alt="Dream Club mascot" onerror="this.onerror=null;this.src='logo.jpeg';" class="h-16 md:h-20 w-auto drop-shadow-lg">
+                    <img src="logo.png" alt="Dream Club mascot" class="h-16 md:h-20 w-auto drop-shadow-lg">
                 </div>
-                <iframe id="readerIframe" src="" class="w-full h-full border-none"></iframe>
+                <iframe id="readerIframe" src="" title="Book Reader" class="w-full h-full border-none"></iframe>
             </div>
 
-            <div class="absolute bottom-3 left-1/2 -translate-x-1/2 z-20">
-                <div id="readerPageCounter" class="bg-cyan-500 text-white font-black px-6 py-2 rounded-full shadow-xl border-4 border-white text-base md:text-lg">Page 1 of 1</div>
-            </div>
         </div>
     </div>
 
@@ -129,6 +69,38 @@
         <p class="mt-2 bg-white text-purple-600 font-black px-4 py-1 rounded-full shadow-md">+25 XP!</p>
     </div>
 
+    <div id="authModal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-black/50 p-4">
+        <div class="w-full max-w-md rounded-3xl border-4 border-teal-300 bg-white p-6 shadow-2xl dark:border-teal-600 dark:bg-gray-900">
+            <div class="mb-5 flex items-center justify-between">
+                <h3 class="text-2xl font-black text-teal-600">Dream Club Login</h3>
+                <button id="closeAuthModalBtn" class="rounded-full bg-gray-100 px-3 py-1 text-lg font-black text-gray-700 dark:bg-gray-800 dark:text-gray-200">X</button>
+            </div>
+
+            <p id="authStatus" class="mb-4 rounded-xl bg-teal-50 px-3 py-2 text-sm font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-200">
+                Sign in to save your Dream Club progress.
+            </p>
+
+            <div class="mb-3">
+                <label for="authEmail" class="mb-1 block text-sm font-black text-gray-700 dark:text-gray-200">Email</label>
+                <input id="authEmail" type="email" autocomplete="email" class="w-full rounded-xl border-2 border-teal-300 px-3 py-2 font-bold text-gray-700 outline-none focus:border-teal-500 dark:bg-gray-800 dark:text-gray-100" placeholder="you@example.com">
+            </div>
+
+            <div class="mb-5">
+                <label for="authPassword" class="mb-1 block text-sm font-black text-gray-700 dark:text-gray-200">Password</label>
+                <input id="authPassword" type="password" autocomplete="current-password" class="w-full rounded-xl border-2 border-teal-300 px-3 py-2 font-bold text-gray-700 outline-none focus:border-teal-500 dark:bg-gray-800 dark:text-gray-100" placeholder="At least 6 characters">
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <button id="authSignInBtn" class="rounded-full bg-teal-500 px-4 py-2 font-black text-white hover:bg-teal-600">Sign In</button>
+                <button id="authSignUpBtn" class="rounded-full bg-orange-500 px-4 py-2 font-black text-white hover:bg-orange-600">Create Account</button>
+                <button id="authGoogleBtn" class="rounded-full bg-blue-500 px-4 py-2 font-black text-white hover:bg-blue-600">Sign In with Google</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="Javascript.js"></script>
 </body>
 </html>
